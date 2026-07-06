@@ -19,6 +19,7 @@
         z-index:2147483647;
         overflow:hidden;
         animation:uizFade .25s ease;
+        touch-action: none; /* Touch events ke liye zaroori */
     }
     @keyframes uizFade{
         from{opacity:0;transform:translateY(-12px) scale(.95)}
@@ -32,13 +33,15 @@
         padding:14px 16px;
         border-bottom:1px solid rgba(255,255,255,.08);
         cursor:move;
+        touch-action: none; /* Header pe bhi touch action disable */
     }
-    .uiz-title{font-size:15px;font-weight:700;letter-spacing:.3px;}
+    .uiz-title{font-size:15px;font-weight:700;letter-spacing:.3px;pointer-events:none;}
     .uiz-close,.uiz-minimize{
         width:30px;height:30px;border:none;border-radius:50%;
         background:rgba(255,255,255,.08);color:#fff;
         cursor:pointer;font-size:18px;transition:.2s;
         margin-left:5px;
+        pointer-events:auto; /* Buttons pe events enable */
     }
     .uiz-close:hover{background:#ff4d4f;}
     .uiz-minimize:hover{background:rgba(255,255,255,0.2);}
@@ -129,26 +132,71 @@
     result.innerHTML = `<strong>Result:</strong> ${convertedText}`;
   };
 
-  // Drag feature
-  let isDragging = false, offsetX, offsetY;
+  // ✅ DESKTOP & MOBILE DONO KE LIYE DRAG SUPPORT
+  let isDragging = false;
+  let startX, startY, initialLeft, initialTop;
   const header = box.querySelector(".uiz-header");
   
-  header.addEventListener("mousedown", (e) => {
+  function onDragStart(e) {
+    // Buttons pe drag nahi hoga
+    if (e.target.closest('button')) return;
+    
     isDragging = true;
-    offsetX = e.clientX - box.getBoundingClientRect().left;
-    offsetY = e.clientY - box.getBoundingClientRect().top;
+    
+    // Mouse ya touch position lein
+    const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+    
+    startX = clientX;
+    startY = clientY;
+    
+    const rect = box.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+    
     box.style.transition = "none";
-  });
-
-  document.addEventListener("mousemove", (e) => {
+    box.style.right = "auto"; // right se left me convert karo
+    box.style.left = initialLeft + "px";
+    box.style.top = initialTop + "px";
+  }
+  
+  function onDragMove(e) {
     if (!isDragging) return;
-    box.style.left = (e.clientX - offsetX) + "px";
-    box.style.top = (e.clientY - offsetY) + "px";
-    box.style.right = "auto";
-  });
-
-  document.addEventListener("mouseup", () => {
+    
+    e.preventDefault(); // Mobile pe scroll rokne ke liye
+    
+    const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+    
+    const deltaX = clientX - startX;
+    const deltaY = clientY - startY;
+    
+    let newLeft = initialLeft + deltaX;
+    let newTop = initialTop + deltaY;
+    
+    // Screen ke boundaries me rakhein
+    const maxLeft = window.innerWidth - box.offsetWidth;
+    const maxTop = window.innerHeight - box.offsetHeight;
+    
+    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+    newTop = Math.max(0, Math.min(newTop, maxTop));
+    
+    box.style.left = newLeft + "px";
+    box.style.top = newTop + "px";
+  }
+  
+  function onDragEnd() {
     isDragging = false;
     box.style.transition = "0.2s";
-  });
+  }
+  
+  // 🖥️ Desktop Events
+  header.addEventListener("mousedown", onDragStart);
+  document.addEventListener("mousemove", onDragMove);
+  document.addEventListener("mouseup", onDragEnd);
+  
+  // 📱 Mobile Events
+  header.addEventListener("touchstart", onDragStart, { passive: false });
+  document.addEventListener("touchmove", onDragMove, { passive: false });
+  document.addEventListener("touchend", onDragEnd);
 })();
