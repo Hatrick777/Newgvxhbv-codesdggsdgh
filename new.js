@@ -1,9 +1,3 @@
-if (location.hostname !== "qxbroker.com" ||
-    !location.pathname.startsWith("/en/demo-trade")) {
-    alert("Open the QxBroker Demo Trade page first.");
-    return;
-}
-
 (() => {
   if (document.getElementById("uiz-converter")) return;
 
