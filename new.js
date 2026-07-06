@@ -22,6 +22,7 @@
         max-height: 700px;
         display: flex;
         flex-direction: column;
+        cursor: default;
     }
     @keyframes uizFade{
         from{opacity:0;transform:translateY(-12px) scale(.95)}
@@ -36,6 +37,7 @@
         border-bottom:1px solid rgba(255,255,255,.08);
         cursor:move;
         flex-shrink: 0;
+        user-select: none;
     }
     .uiz-title{font-size:15px;font-weight:700;letter-spacing:.3px;}
     .uiz-close,.uiz-minimize{
@@ -167,9 +169,7 @@
         border: 1px solid rgba(255,255,255,0.1);
         font-family: monospace;
         font-size: 13px;
-        color: #4f8cff;
-        max-height: 150px;
-        overflow-y: auto;
+        min-height: 80px;
     }
     .uiz-html-preview .demo-text {
         background: #ff6b6b;
@@ -177,6 +177,7 @@
         border-radius: 4px;
         color: white;
         font-weight: bold;
+        display: inline-block;
     }
     .uiz-html-preview .live-text {
         background: #51cf66;
@@ -184,11 +185,12 @@
         border-radius: 4px;
         color: white;
         font-weight: bold;
+        display: inline-block;
         animation: uizPulse 0.5s ease;
     }
     @keyframes uizPulse {
         0% { transform: scale(1); }
-        50% { transform: scale(1.2); }
+        50% { transform: scale(1.3); }
         100% { transform: scale(1); }
     }
     .uiz-status-badge {
@@ -197,7 +199,7 @@
         border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
-        margin-top: 8px;
+        margin: 8px 0;
     }
     .uiz-status-demo {
         background: #ff6b6b;
@@ -207,6 +209,21 @@
         background: #51cf66;
         color: white;
         animation: uizPulse 0.5s ease;
+    }
+    #updated-html-preview {
+        background: rgba(0,0,0,0.2);
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 8px;
+        font-family: monospace;
+        font-size: 13px;
+        min-height: 60px;
+    }
+    .uiz-html-container {
+        background: rgba(0,0,0,0.2);
+        padding: 12px;
+        border-radius: 6px;
+        margin: 8px 0;
     }
   `;
   document.head.appendChild(style);
@@ -260,19 +277,19 @@
         <div class="uiz-tab-content" id="html-tab" style="display:none;">
             <div class="uiz-text">🛠️ Change "Demo" to "Live" in HTML</div>
             
-            <!-- Input HTML -->
+            <!-- Current HTML Preview -->
             <div style="margin-bottom:12px;">
-                <label style="font-size:12px; color:#888; display:block; margin-bottom:4px;">HTML Content:</label>
+                <label style="font-size:12px; color:#888; display:block; margin-bottom:4px;">Current HTML:</label>
                 <div class="uiz-html-preview" id="html-preview">
                     <div class="zfJUm" flex>
                         <div class="Zt1hG">54,162.00</div>
-                        <div class="v2KPX 1TzT1"><span class="demo-text">Demo</span></div>
+                        <div class="v2KPX 1TzT1"><span class="demo-text" id="demo-span">Demo</span></div>
                     </div>
                 </div>
             </div>
 
             <!-- Status Badge -->
-            <div style="text-align:center; margin:10px 0;">
+            <div style="text-align:center; margin:5px 0;">
                 <span class="uiz-status-badge uiz-status-demo" id="status-badge">🔴 DEMO</span>
             </div>
 
@@ -280,14 +297,14 @@
             <button class="uiz-btn" id="demo-to-live-btn" style="background:linear-gradient(135deg,#51cf66,#2b8a3e);">
                 🔄 Convert "Demo" → "Live"
             </button>
-            <button class="uiz-btn" id="reset-demo-btn" style="background:linear-gradient(135deg,#ff6b6b,#c92a2a); margin-top:8px;">
+            <button class="uiz-btn" id="reset-demo-btn" style="background:linear-gradient(135deg,#ff6b6b,#c92a2a); margin-top:0;">
                 ↩️ Reset to "Demo"
             </button>
 
-            <!-- Result -->
-            <div class="uiz-result" id="html-result" style="display:block; background:rgba(0,0,0,0.3);">
+            <!-- Updated HTML Result -->
+            <div class="uiz-result" id="html-result" style="display:block; background:rgba(0,0,0,0.3); margin-top:12px;">
                 <div style="font-size:12px; color:#888; margin-bottom:6px;">📋 Updated HTML:</div>
-                <div id="updated-html-preview" style="font-family:monospace; font-size:13px; color:#4f8cff; word-break:break-all;">
+                <div id="updated-html-preview">
                     <div class="zfJUm" flex>
                         <div class="Zt1hG">54,162.00</div>
                         <div class="v2KPX 1TzT1"><span class="demo-text">Demo</span></div>
@@ -362,18 +379,45 @@
   }
 
   function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.querySelector('.uiz-copy-btn');
-      if (btn) {
-        btn.textContent = '✅ Copied!';
-        setTimeout(() => btn.textContent = '📋 Copy Result', 2000);
-      }
-    });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.uiz-copy-btn');
+        if (btn && btn.textContent.includes('Copy')) {
+          btn.textContent = '✅ Copied!';
+          setTimeout(() => btn.textContent = '📋 Copy HTML', 2000);
+        }
+      }).catch(() => {
+        // Fallback
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('Copied!');
   }
 
   function updateHTMLPreview(isLiveMode) {
     const preview = document.getElementById('updated-html-preview');
     const badge = document.getElementById('status-badge');
+    const mainPreview = document.getElementById('html-preview');
+    
+    // Update main preview
+    const mainSpan = mainPreview.querySelector('#demo-span');
+    if (mainSpan) {
+      mainSpan.textContent = isLiveMode ? 'Live' : 'Demo';
+      mainSpan.className = isLiveMode ? 'live-text' : 'demo-text';
+    }
+    
+    // Update result preview
     const htmlContent = `
 <div class="zfJUm" flex>
     <div class="Zt1hG">54,162.00</div>
@@ -390,20 +434,24 @@
       badge.className = 'uiz-status-badge uiz-status-demo';
       badge.textContent = '🔴 DEMO';
     }
+    
+    isLive = isLiveMode;
   }
 
   // --- Tab Switching ---
   document.querySelectorAll('.uiz-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      switchTab(tab.dataset.tab);
+    tab.addEventListener('click', function() {
+      switchTab(this.dataset.tab);
     });
   });
 
   // --- Close Button ---
-  box.querySelector(".uiz-close").onclick = () => box.remove();
+  box.querySelector(".uiz-close").onclick = function() {
+    box.remove();
+  };
   
   // --- Minimize Button ---
-  box.querySelector(".uiz-minimize").onclick = () => {
+  box.querySelector(".uiz-minimize").onclick = function() {
     const body = box.querySelector(".uiz-body");
     body.style.display = isMinimized ? "block" : "none";
     isMinimized = !isMinimized;
@@ -411,11 +459,11 @@
 
   // --- Character Counter ---
   document.getElementById('main-input').addEventListener('input', function() {
-    document.getElementById('char-count').textContent = `${this.value.length} characters`;
+    document.getElementById('char-count').textContent = this.value.length + ' characters';
   });
 
   // --- Convert Functionality ---
-  document.getElementById('convert-btn').onclick = () => {
+  document.getElementById('convert-btn').onclick = function() {
     const input = document.getElementById('main-input');
     const select = document.getElementById('convert-type');
     const result = document.getElementById('result-box');
@@ -446,30 +494,27 @@
         break;
       case "count-words": 
         const words = text.split(/\s+/).filter(w => w.length > 0);
-        convertedText = `📊 Words: ${words.length} | Characters: ${text.length} (without spaces: ${text.replace(/\s/g, '').length})`;
+        convertedText = '📊 Words: ' + words.length + ' | Characters: ' + text.length + ' (without spaces: ' + text.replace(/\s/g, '').length + ')';
         break;
     }
     
     result.style.display = "block";
-    result.innerHTML = `
-      <strong>Result:</strong> ${convertedText}
-      ${select.value !== 'count-words' ? `
-        <br><button class="uiz-copy-btn">📋 Copy Result</button>
-      ` : ''}
-    `;
-
-    const copyBtn = result.querySelector('.uiz-copy-btn');
-    if (copyBtn) {
-      copyBtn.onclick = () => copyToClipboard(convertedText);
-    }
-
+    result.innerHTML = '<strong>Result:</strong> ' + convertedText;
+    
     if (select.value !== 'count-words') {
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'uiz-copy-btn';
+      copyBtn.textContent = '📋 Copy Result';
+      copyBtn.onclick = function() {
+        copyToClipboard(convertedText);
+      };
+      result.appendChild(copyBtn);
       addToHistory(text, convertedText, conversionType);
     }
   };
 
   // --- Clear History ---
-  document.getElementById('clear-history').onclick = () => {
+  document.getElementById('clear-history').onclick = function() {
     if (confirm('Clear all history?')) {
       history = [];
       saveHistory();
@@ -478,35 +523,28 @@
   };
 
   // --- Enter key to convert ---
-  document.getElementById('main-input').addEventListener('keypress', (e) => {
+  document.getElementById('main-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
       document.getElementById('convert-btn').click();
     }
   });
 
   // --- DEMO TO LIVE CONVERTER ---
-  document.getElementById('demo-to-live-btn').onclick = () => {
-    isLive = true;
+  document.getElementById('demo-to-live-btn').onclick = function() {
     updateHTMLPreview(true);
     
     const result = document.getElementById('html-result');
-    result.style.display = 'block';
     result.style.borderLeft = '3px solid #51cf66';
     
-    // Show success message
+    // Animation effect
     const previewDiv = document.getElementById('updated-html-preview');
     previewDiv.style.animation = 'none';
-    setTimeout(() => {
+    setTimeout(function() {
       previewDiv.style.animation = 'uizPulse 0.5s ease';
     }, 10);
-    
-    // Copy HTML automatically (optional)
-    const htmlContent = document.getElementById('updated-html-preview').innerHTML;
-    document.getElementById('copy-html-btn').dataset.html = htmlContent;
   };
 
-  document.getElementById('reset-demo-btn').onclick = () => {
-    isLive = false;
+  document.getElementById('reset-demo-btn').onclick = function() {
     updateHTMLPreview(false);
     
     const result = document.getElementById('html-result');
@@ -514,7 +552,7 @@
     
     const previewDiv = document.getElementById('updated-html-preview');
     previewDiv.style.animation = 'none';
-    setTimeout(() => {
+    setTimeout(function() {
       previewDiv.style.animation = 'uizPulse 0.5s ease';
     }, 10);
   };
@@ -522,38 +560,54 @@
   // --- Copy HTML Button ---
   document.getElementById('copy-html-btn').onclick = function() {
     const htmlContent = document.getElementById('updated-html-preview').innerHTML;
-    // Clean up the HTML for copying
-    const cleanHTML = htmlContent.replace(/<span class="(demo-text|live-text)">(Demo|Live)<\/span>/, 
-      isLive ? '<span class="live-text">Live</span>' : '<span class="demo-text">Demo</span>'
-    );
-    copyToClipboard(cleanHTML);
+    copyToClipboard(htmlContent);
   };
 
   // --- Initialize ---
   renderHistory();
   updateHTMLPreview(false);
 
-  // --- Drag Feature ---
-  let isDragging = false, offsetX, offsetY;
+  // --- DRAG FEATURE (FIXED) ---
+  let isDragging = false;
+  let offsetX = 0;
+  let offsetY = 0;
   const header = box.querySelector(".uiz-header");
   
-  header.addEventListener("mousedown", (e) => {
+  header.addEventListener("mousedown", function(e) {
+    // Only allow drag on header, not on buttons
+    if (e.target.closest('button')) return;
+    
     isDragging = true;
-    offsetX = e.clientX - box.getBoundingClientRect().left;
-    offsetY = e.clientY - box.getBoundingClientRect().top;
+    const rect = box.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
     box.style.transition = "none";
+    box.style.cursor = "grabbing";
+    e.preventDefault();
   });
 
-  document.addEventListener("mousemove", (e) => {
+  document.addEventListener("mousemove", function(e) {
     if (!isDragging) return;
-    box.style.left = (e.clientX - offsetX) + "px";
-    box.style.top = (e.clientY - offsetY) + "px";
+    
+    let left = e.clientX - offsetX;
+    let top = e.clientY - offsetY;
+    
+    // Keep within viewport
+    left = Math.max(0, Math.min(left, window.innerWidth - box.offsetWidth));
+    top = Math.max(0, Math.min(top, window.innerHeight - box.offsetHeight));
+    
+    box.style.left = left + "px";
+    box.style.top = top + "px";
     box.style.right = "auto";
+    box.style.bottom = "auto";
   });
 
-  document.addEventListener("mouseup", () => {
-    isDragging = false;
-    box.style.transition = "0.2s";
+  document.addEventListener("mouseup", function() {
+    if (isDragging) {
+      isDragging = false;
+      box.style.transition = "0.2s";
+      box.style.cursor = "default";
+    }
   });
 
 })();
